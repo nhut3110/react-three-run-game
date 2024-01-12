@@ -14,11 +14,12 @@ export default function Bounds({ length = 1 }: Props) {
   return (
     <>
       <RigidBody type="fixed" restitution={0.2} friction={0}>
+        {/* walls surrounded */}
         <mesh
           geometry={boxGeometry}
           material={wallMaterial}
           receiveShadow
-          scale={[0.3, 1.5, length * TILE_SIZE]}
+          scale={[0.3, 3, length * TILE_SIZE]}
           position={[-2.15, 0.75, 2 - (length * TILE_SIZE) / 2]}
         />
 
@@ -26,7 +27,7 @@ export default function Bounds({ length = 1 }: Props) {
           geometry={boxGeometry}
           material={wallMaterial}
           castShadow
-          scale={[0.3, 1.5, length * TILE_SIZE]}
+          scale={[0.3, 3, length * TILE_SIZE]}
           position={[2.15, 0.75, 2 - (length * TILE_SIZE) / 2]}
         />
 
@@ -34,9 +35,11 @@ export default function Bounds({ length = 1 }: Props) {
           geometry={boxGeometry}
           material={wallMaterial}
           castShadow
-          scale={[4.6, 1.5, 0.3]}
+          scale={[4.6, 3, 0.3]}
           position={[0, 0.75, -length * TILE_SIZE + 2]}
         />
+
+        {/* transparent wall to prevent fall outside from the back */}
         <mesh
           geometry={boxGeometry}
           material={wallTransparentMaterial}

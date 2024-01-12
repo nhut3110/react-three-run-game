@@ -6,20 +6,29 @@ import { Controls, Phase } from "@/types";
 import { useKeyboardControls } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { RigidBody, useRapier } from "@react-three/rapier";
-import { useRef, ElementRef, useEffect, useCallback, useState } from "react";
+import {
+  useRef,
+  ElementRef,
+  useEffect,
+  useCallback,
+  useState,
+  memo,
+  useMemo,
+} from "react";
 import * as THREE from "three";
 
-export default function Player() {
+const Player = () => {
   const [subscribeKeys, getKeys] = useKeyboardControls<Controls>();
   const bodyRef = useRef<ElementRef<typeof RigidBody>>(null);
+  const loader = useMemo(() => {
+    return new THREE.TextureLoader();
+  }, []);
 
   const start = useGame((state) => state.start);
   const end = useGame((state) => state.end);
   const restart = useGame((state) => state.restart);
   const blockCount = useGame((state) => state.blockCount);
   const phase = useGame((state) => state.phase);
-
-  console.log(phase);
 
   const { rapier, world } = useRapier();
 
@@ -45,7 +54,7 @@ export default function Player() {
   }, [rapier.Ray, world]);
 
   const reset = useCallback(() => {
-    bodyRef.current?.setTranslation({ x: 0, y: 0, z: 0 }, false);
+    bodyRef.current?.setTranslation({ x: 0, y: 0.5, z: 0 }, false);
     bodyRef.current?.setLinvel({ x: 0, y: 0, z: 0 }, false);
     bodyRef.current?.setAngvel({ x: 0, y: 0, z: 0 }, false);
   }, []);
@@ -88,22 +97,22 @@ export default function Player() {
     const impulseStreight = 0.6 * delta;
     const torqueStreight = 0.2 * delta;
 
-    if (forward) {
+    if (forward && phase !== Phase.done) {
       impulse.z -= impulseStreight;
       torque.x -= torqueStreight;
     }
 
-    if (backward) {
+    if (backward && phase !== Phase.done) {
       impulse.z += impulseStreight;
       torque.x += torqueStreight;
     }
 
-    if (leftward) {
+    if (leftward && phase !== Phase.done) {
       impulse.x -= impulseStreight;
       torque.z += torqueStreight;
     }
 
-    if (rightward) {
+    if (rightward && phase !== Phase.done) {
       impulse.x += impulseStreight;
       torque.z -= torqueStreight;
     }
@@ -117,33 +126,49 @@ export default function Player() {
 
     if (bodyRef.current) {
       const bodyPosition = bodyRef.current.translation();
+      if (bodyPosition.y < 0) {
+        bodyPosition.y = 0.5;
+        bodyPosition.x = 0;
+        bodyPosition.z = 0;
+        reset();
+        restart();
+      }
 
-      const cameraPosition = new THREE.Vector3();
+      const cameraPosition = new THREE.Vector3(10, 10, 10);
       cameraPosition.copy(bodyPosition as THREE.Vector3);
       cameraPosition.z += 2.25;
       cameraPosition.y += 0.65;
 
-      const cameraTarger = new THREE.Vector3();
-      cameraTarger.copy(bodyPosition as THREE.Vector3);
-      cameraTarger.y += 0.25;
+      const cameraTarget = new THREE.Vector3(0, 0, 0);
+      cameraTarget.copy(bodyPosition as THREE.Vector3);
+      cameraTarget.y += 0.25;
 
       smoothedCameraPosition.lerp(cameraPosition, 5 * delta);
-      smoothedCameraTarget.lerp(cameraTarger, 5 * delta);
+      smoothedCameraTarget.lerp(cameraTarget, 5 * delta);
 
       state.camera.position.copy(smoothedCameraPosition);
       state.camera.lookAt(smoothedCameraTarget);
 
-      /** PHASES */
-
+      // prevent jump outside map bounds
       if (bodyPosition.z < -(blockCount * TILE_SIZE + 2)) {
         end();
       }
-
-      if (bodyPosition.y < -4) {
-        restart();
-      }
     }
   });
+
+  const normalMap = useMemo(() => loader.load("/player/normal.png"), [loader]);
+  const diffuseMap = useMemo(
+    () => loader.load("/player/diffuse.png"),
+    [loader]
+  );
+  const bumpMap = useMemo(() => loader.load("/player/bump.png"), [loader]);
+
+  useEffect(() => {
+    [normalMap, diffuseMap, bumpMap].forEach((texture) => {
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(2, 2);
+    });
+  }, [normalMap, diffuseMap, bumpMap]);
 
   return (
     <RigidBody
@@ -157,9 +182,17 @@ export default function Player() {
       angularDamping={0.5}
     >
       <mesh castShadow>
-        <icosahedronGeometry args={[0.3, 1]} />
-        <meshStandardMaterial flatShading color={"mediumpurple"} />
+        <sphereGeometry args={[0.3, 32, 32]} />
+        <meshStandardMaterial
+          flatShading
+          normalMap={normalMap}
+          map={diffuseMap}
+          bumpMap={bumpMap}
+          bumpScale={0.7}
+        />
       </mesh>
     </RigidBody>
   );
-}
+};
+
+export default memo(Player);

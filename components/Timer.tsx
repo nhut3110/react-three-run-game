@@ -1,44 +1,48 @@
 import useGame from "@/stores/useGame";
 import { Phase } from "@/types";
-import { addEffect } from "@react-three/fiber";
-import { ElementRef, useRef, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Timer() {
   const restart = useGame((state) => state.restart);
+  const end = useGame((state) => state.end);
   const phase = useGame((state) => state.phase);
-  const timeRef = useRef<ElementRef<"div">>(null);
+  const limitTime = useGame((state) => state.limitTime);
+  const [timeLeft, setTimeLeft] = useState(limitTime);
 
   useEffect(() => {
-    const unsubscribe = addEffect(() => {
-      const state = useGame.getState();
-      let elapsedTime: string | number = 0;
+    setTimeLeft(limitTime);
+  }, [limitTime]);
 
-      if (state.phase === Phase.playing) {
-        elapsedTime = Date.now() - state.startTime;
-      } else if (state.phase === Phase.done) {
-        elapsedTime = state.endTime - state.startTime;
-      }
+  useEffect(() => {
+    let intervalId: NodeJS.Timer | undefined; // Initialize to undefined
 
-      elapsedTime /= 1000;
-      elapsedTime = elapsedTime.toFixed(2);
+    if (phase === Phase.playing) {
+      setTimeLeft(limitTime); // Reset timer to limit time
+      intervalId = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          const newTime = prevTime - 0.1; // Decrease time by 0.1 seconds
+          if (newTime <= 0) {
+            clearInterval(intervalId); // Stop the timer
+            end(); // Call the end function
+            return 0;
+          }
+          return newTime;
+        });
+      }, 100); // Update every 0.1 seconds
+    }
 
-      if (timeRef.current) {
-        timeRef.current.textContent = `${elapsedTime}`;
-      }
-    });
-
+    // Cleanup function
     return () => {
-      unsubscribe();
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, []);
+  }, [phase, limitTime, end]);
 
   return (
     <>
-      <div
-        className="absolute top-[15%] left-0 w-full text-white text-[6vh] bg-opacity-30 bg-black py-2 text-center"
-        ref={timeRef}
-      >
-        0
+      <div className="absolute top-[15%] left-0 w-full text-white text-[6vh] bg-opacity-30 bg-black py-2 text-center">
+        {timeLeft.toFixed(2)}
       </div>
 
       {phase === Phase.done && (

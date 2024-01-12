@@ -19,16 +19,24 @@
     "autoprefixer": "10.4.14",
     "eslint": "8.46.0",
     "eslint-config-next": "13.4.12",
+    "framer-motion": "^10.18.0",
+    "framer-motion-3d": "^10.18.0",
     "next": "13.4.12",
+    "popmotion": "^11.0.5",
     "postcss": "8.4.27",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-modal": "^3.16.1",
+    "react-spinners": "^0.13.8",
+    "react-use-measure": "^2.1.1",
     "tailwindcss": "3.3.3",
     "three": "^0.155.0",
     "typescript": "5.1.6",
+    "usehooks-ts": "^2.9.2",
     "zustand": "^4.4.1"
   },
   "devDependencies": {
+    "@types/react-modal": "^3.16.3",
     "leva": "^0.9.35",
     "r3f-perf": "^7.1.2"
   }
